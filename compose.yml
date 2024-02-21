@@ -1,0 +1,59 @@
+version: '3.7'
+services:
+  laravel:
+    build:
+      args:
+        user: ariel
+        uid: 1000
+      context: ./laravel
+    image: lm_laravel
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./laravel/:/var/www
+  
+  db:
+    image: mysql:latest
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./mysql:/docker-entrypoint-initdb.d
+      - ./mysql/data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin
+    links:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    restart: always
+    ports:
+      - 8801:80
+  
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - 8800:80
+    volumes:
+      - ./laravel/:/var/www
+      - ./nginx:/etc/nginx/conf.d
+
+  express:
+      build: 
+        context: ./express/
+        dockerfile: Dockerfile
+      image: nodejs-express
+      restart: unless-stopped
+      ports:
+        - "8443:443"
+      volumes:
+        - ./express/:/home/node/app
+        - ./express/node_modules:/home/node/app/node_modules
